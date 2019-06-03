@@ -1,3 +1,5 @@
+import random
+
 from tools.image_input import read_img_file
 import tensorflow as tf
 from tools.cnn_model import cnn_model_fn
@@ -9,16 +11,20 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tools.img_preprocess import read_img_and_convert_to_binary,binary_img_segment
 import cv2
-import parser
+from parser_backup import *
 import tools
 from calculator import *
 import time
+from solver.exp_parser import Exp_parser
+
 
 
 # 程序入口,输入一张图片，输出一张图片
 def solve(filename,mode = 'product'):
     original_img, binary_img = read_img_and_convert_to_binary(filename)
+
     symbols = binary_img_segment(binary_img, original_img)
+
     sort_symbols = sort_characters(symbols)
     process.detect_uncontinous_symbols(sort_symbols, binary_img)
     length = len(symbols)
@@ -60,11 +66,27 @@ def solve(filename,mode = 'product'):
     # print([[x['location'], x['candidates']] for x in characters])
     tokens = process.group_into_tokens(characters)
     # print('识别出的token')
-    # print(tokens)
+    print(tokens)
     # 先将每一个token初始化成一个树节点，得到一个节点列表node_list
-    node_list = parser.characters_to_nodes(characters)
+    print("here")
+    node_list = characters_to_nodes(characters)
+    print(node_list)
+    exp_parser = Exp_parser()
+    result=exp_parser.expression(node_list)
+    str = ''
+    for token in tokens:
+        str += token['token_string']
+    print(result)
+    if result is None:
+        return None, str
+    else:
+        return (round(result,2),str)
 
-    parser_tree = parser.decompose(node_list)
+
+
+    parser_tree = decompose(node_list)
+    print("should reach here")
+
     # print(parser_tree)
     set_forward_step(0)
     post_order(parser_tree)
@@ -179,6 +201,78 @@ def solve(filename,mode = 'product'):
         return save_filename
     elif mode == 'test':
         return latex_str,answer
+
+
+
+
+
+####czy 's part
+
+
+index = 0
+def expression(list):
+    global index
+    length = len(list)
+    sum = factor(list,length)
+    while (index < length):
+        if (list[index]['structure'] == '+' or list[index]['structure'] == '-'):
+            flag = list[index]['structure']
+            index = index + 1
+            if index >= length:
+                print("格式错误")
+                return
+
+            temp = factor(list,length)
+            if (flag == '+'):
+                sum = sum + temp
+            else:
+                sum = sum - temp
+        else:
+            print("格式错误")
+
+    return sum
+
+
+def factor(list,length):
+    global index
+    product = 1
+    if (list[index]['type'] == 2 or list[index]['structure'] =='(' or list[index]['structure']==')'):
+        sss = list[index]['structure']
+        if(sss == '(' or sss ==')'):
+            product = 1
+        else:
+            product = list[index]['structure']
+        index = index + 1
+        while (index < length):
+            if (list[index]['structure'] == 'times' or list[index]['structure'] == 'div' or list[index]['structure'] == 'f' or list[index]['structure']=='x'):
+                a = list[index]['structure']
+                if(a == 'times' or a=='x'):
+                    flag = '*'
+                else:
+                    flag = '/'
+                index = index + 1
+                if index < length:
+                    g = list[index]['structure']
+                    if(g=='(' or g==')'):
+                        temp = 1
+                    else:
+                     temp = list[index]['structure']
+                else:
+                    print("格式错误")
+                    return
+                if (flag == '*'):
+                    product = product * temp
+                else:
+                    product = product / temp
+                index = index + 1
+            elif (list[index]['structure'] == '+' or list[index]['structure'] == '-' or list[index]['structure']=='x'):
+                break
+            else:
+                print("格式错误")
+
+    else:
+        print("格式错误")
+    return product
 
 
 

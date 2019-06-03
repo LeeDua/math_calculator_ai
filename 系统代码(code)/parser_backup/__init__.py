@@ -1,6 +1,8 @@
 import scan
 import config
 import numpy as np
+import sympy
+import tools
 
 characters = []
 current_node = {'type':config.NODE_TYPE['default'],'structure':0,'location':[0,0,1,1]}
